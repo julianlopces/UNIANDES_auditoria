@@ -10,7 +10,58 @@ if (exists("email") && exists("password") && exists("server") && exists("formid"
 
 data_ejemplo <-read_excel("data/data_ejemplo_uniandes.xlsx")
 vars_needed <- colnames(data_ejemplo)
-vars_needed <- c(vars_needed,"violence_reasons_12")
+vars_needed <- c(vars_needed,"violence_reasons_12",
+  paste0("social_friends_o_", 1:15),
+  paste0("social_recess_", 1:15),
+  paste0("social_recess_o_", 1:15),
+  paste0("social_house_1_", 1:15),
+  paste0("social_house_1_o_", 1:15),
+  paste0("social_study_1_", 1:15),
+  paste0("social_study_1_o_", 1:15),
+  paste0("social_game_1_", 1:15),
+  paste0("social_game_1_o_", 1:15),
+  paste0("social_academic_1_", 1:15),
+  paste0("social_academic_1_o_", 1:15),
+  paste0("social_academic2_1_", 1:15),
+  paste0("social_academic2_1_o_", 1:15),
+  paste0("social_personal_1_", 1:15),
+  paste0("social_personal_1_o_", 1:15),
+  paste0("social_personal2_1_", 1:15),
+  paste0("social_personal2_1_o_", 1:15),
+  paste0("social_friend_wish_1_", 1:15),
+  paste0("social_friend_wish_1_o_", 1:15),
+  paste0("social_friend_wish_2_", 1:15),
+  paste0("social_friend_wish_2_o_", 1:15),
+  paste0("social_house_2_", 1:15),
+  paste0("social_house_2_o_", 1:15),
+  paste0("social_study_2_", 1:15),
+  paste0("social_study_2_o_", 1:15),
+  paste0("social_game_2_", 1:15),
+  paste0("social_game_2_o_", 1:15),
+  paste0("social_academic_2_", 1:15),
+  paste0("social_academic_2_o_", 1:15),
+  paste0("social_academic2_2_", 1:15),
+  paste0("social_academic2_2_o_", 1:15),
+  paste0("social_personal_2_", 1:15),
+  paste0("social_personal_2_o_", 1:15),
+  paste0("social_personal2_2_", 1:15),
+  paste0("social_personal2_2_o_", 1:15),
+  paste0("social_work_1_o_",        1:5),
+  paste0("social_work2_1_o_",       1:5),
+  paste0("social_work3_1_o_",       1:5),
+  paste0("social_leadership_1_o_",  1:5),
+  paste0("social_academic_skills_1_o_", 1:5),
+  paste0("social_popularity_1_o_",  1:5),
+  paste0("social_shyness_1_o_",     1:5),
+  
+  paste0("social_work_2_o_",        1:5),
+  paste0("social_work2_2_o_",       1:5),
+  paste0("social_work3_2_o_",       1:5),
+  paste0("social_leadership_2_o_",  1:5),
+  paste0("social_academic_skills_2_o_", 1:5),
+  paste0("social_popularity_2_o_",  1:5),
+  paste0("social_shyness_2_o_",     1:5)
+)
 
 
 # Completar aquí para descargar datos de survey 
@@ -186,6 +237,21 @@ data <- data %>%
 
 data <- data %>%
   mutate(student_id_final = coalesce(student_id,student_id_uuid))
+
+
+# Importar nombres de colegios
+
+meta_colegios <- read_sheet(id_alertas,
+                            sheet = "meta_colegios")
+
+data <- data %>%
+  mutate(
+    colegio_pull_id = if_else(is.na(colegio_pull_id),school_final,colegio_pull_id))%>%
+  left_join(meta_colegios%>%select(COD_MODULAR,COLEGIO)%>%mutate(COD_MODULAR=as.character(COD_MODULAR),
+                                                                 COLEGIO = as.character(COLEGIO)),
+            by = c("colegio_pull_id"="COD_MODULAR"))%>%
+  mutate(colegio_pull = coalesce(colegio_pull,COLEGIO))%>%
+  select(-COLEGIO)
 
 
 

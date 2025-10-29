@@ -113,7 +113,7 @@ alertas <- alertas %>%
   )
 
 alertas <- alertas %>%
-  mutate(duplicado = if_else(duplicated(student_id_final, assent) & assent == 1,1,0))
+  mutate(duplicado = if_else(duplicated(student_id_final,codigo_compuesto) & assent == 1,1,0))
 
 ## Exceso de no responde
 
@@ -361,9 +361,6 @@ seguimiento_colegios <- alertas_sin_duplicados %>%
 
 
 # Agregar meta de lb
-
-meta_colegios <- read_sheet(id_alertas,
-                    sheet = "meta_colegios")
 
 meta_colegios$COD_MODULAR <- as.character(meta_colegios$COD_MODULAR)
 
