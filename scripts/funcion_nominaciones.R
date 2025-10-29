@@ -11,17 +11,16 @@
 agregar_nominaciones <- function(data, prefix, var_int = NULL, max_nominaciones = NULL, add_vec = TRUE) {
   stopifnot(is.data.frame(data), is.character(prefix), length(prefix) == 1)
   
-  # -------- Config columnas de nominación --------
+  # --- Config columnas de nominación ---
   max_cols <- if (is.null(max_nominaciones)) 15L else as.integer(max_nominaciones)
   stopifnot(max_cols > 0L)
-  
   cols_prefijo <- sprintf("%s_%d", prefix, 1:max_cols)
   
-  # Asegura que existan las columnas de nominación (si faltan, crea NA_character_)
+  # Asegura que existan las columnas del prefijo
   missing_cols <- setdiff(cols_prefijo, names(data))
   if (length(missing_cols)) data[missing_cols] <- NA_character_
   
-  # -------- Parser robusto para el entero --------
+  # Parser robusto: "" o NA -> 0; recorta a [0, max_n]
   parse_int_bound <- function(x, max_n = 15L) {
     x_chr <- as.character(x)
     if (is.na(x_chr) || trimws(x_chr) == "") return(0L)
@@ -31,34 +30,42 @@ agregar_nominaciones <- function(data, prefix, var_int = NULL, max_nominaciones 
     max(0L, min(max_n, x_int))
   }
   
-  # -------- Preasignación --------
+  # --- Preasignación ---
   n <- nrow(data)
-  v_unique   <- integer(n)
-  v_66       <- integer(n)
-  v_99       <- integer(n)
-  v_eff      <- integer(n)  # únicos + 66
-  flag_dup   <- integer(n)  # 1/0
-  flag_salto <- integer(n)  # 1/0
-  v_diff     <- integer(n)
+  v_unique   <- rep(NA_integer_, n)
+  v_66       <- rep(NA_integer_, n)
+  v_99       <- rep(NA_integer_, n)
+  v_eff      <- rep(NA_integer_, n)  # únicos + 66
+  flag_dup   <- rep(NA_integer_, n)  # 1/0
+  flag_salto <- rep(NA_integer_, n)  # 1/0
+  v_diff     <- rep(NA_integer_, n)
   v_vec      <- if (add_vec) vector("list", n) else NULL
+  if (add_vec) v_vec[] <- list(NA)  # también NA si INT falta
   
-  # -------- Loop fila a fila --------
+  # --- Loop fila a fila ---
   for (i in seq_len(n)) {
-    # 1) Vector de respuestas (character) recortado al n declarado
+    # ¿Usamos var_int o max_nominaciones?
+    if (!is.null(var_int)) {
+      raw_int <- data[[var_int]][i]
+      int_missing <- is.na(raw_int) || trimws(as.character(raw_int)) == ""
+      if (int_missing) {
+        # todo ya está en NA por preasignación; continuar
+        next
+      }
+      n_int <- parse_int_bound(raw_int, max_n = max_cols)
+    } else {
+      # Sin var_int: usamos el máximo fijo
+      n_int <- max_cols
+    }
+    
+    # Extraer respuestas (character) y recortar al n declarado
     vals <- unlist(data[i, cols_prefijo], use.names = FALSE)
     vals <- as.character(vals)
     vals <- ifelse(is.na(vals), NA_character_, trimws(vals))
-    
-    n_int <- if (!is.null(var_int) && var_int %in% names(data)) {
-      parse_int_bound(data[[var_int]][i], max_n = length(vals))
-    } else {
-      max_cols
-    }
-    
     v <- if (n_int > 0L) vals[seq_len(n_int)] else character(0)
     if (add_vec) v_vec[[i]] <- v
     
-    # 2) Conteos
+    # Conteos
     v_no_na <- v[!is.na(v) & nzchar(v)]
     cnt_66  <- sum(v_no_na == "66")
     cnt_99  <- sum(v_no_na == "99")
@@ -66,15 +73,15 @@ agregar_nominaciones <- function(data, prefix, var_int = NULL, max_nominaciones 
     cnt_uniq <- length(unique(v_valid))
     eff      <- cnt_uniq + cnt_66
     
-    # 3) Flags (1/0)
+    # Flags (1/0)
     non_na_count <- length(v_no_na)
     dup   <- as.integer(non_na_count > (cnt_uniq + cnt_66 + cnt_99)) # duplicados
-    salto <- as.integer(eff < n_int)                                  # saltos (no llenó todos)
+    salto <- as.integer(eff < n_int)                                  # saltos
     
-    # 4) Diferencia final: int - (únicos + 66 + 99)
+    # Diferencia final
     diff_val <- n_int - (cnt_uniq + cnt_66 + cnt_99)
     
-    # 5) Asignar
+    # Asignar
     v_unique[i]   <- cnt_uniq
     v_66[i]       <- cnt_66
     v_99[i]       <- cnt_99
@@ -84,7 +91,7 @@ agregar_nominaciones <- function(data, prefix, var_int = NULL, max_nominaciones 
     v_diff[i]     <- diff_val
   }
   
-  # -------- Agregar columnas al DF --------
+  # --- Agregar columnas al DF ---
   data[[paste0(prefix, "_unique")]]           <- v_unique
   data[[paste0(prefix, "_66")]]               <- v_66
   data[[paste0(prefix, "_99")]]               <- v_99
@@ -92,9 +99,7 @@ agregar_nominaciones <- function(data, prefix, var_int = NULL, max_nominaciones 
   data[[paste0(prefix, "_flag_duplicates")]]  <- flag_dup
   data[[paste0(prefix, "_flag_gaps")]]        <- flag_salto
   data[[paste0(prefix, "_diff")]]             <- v_diff
-  if (add_vec) {
-    data[[paste0(prefix, "_vec")]] <- v_vec
-  }
+  if (add_vec) data[[paste0(prefix, "_vec")]] <- v_vec
   
   return(data)
 }
@@ -105,12 +110,270 @@ agregar_nominaciones <- function(data, prefix, var_int = NULL, max_nominaciones 
 alertas_nomi <- data %>% filter(assent == 1)
 
 
+alertas_nomi<- agregar_nominaciones(
+  data   = alertas_nomi,
+  prefix = "social_friends",
+  var_int = "social_friends_int",
+  add_vec = TRUE 
+)
+
+alertas_nomi <- agregar_nominaciones(
+  data = alertas_nomi,
+  prefix = "social_recess",
+  var_int = "social_recess_int",
+  add_vec = TRUE
+
+)
+
+# Primer orden -----------------------------------------------------------------
+
+alertas_nomi <- agregar_nominaciones(
+  data = alertas_nomi,
+  prefix = "social_house_1",
+  var_int = "social_house_1_int",
+  add_vec = TRUE
+  
+)
+
+alertas_nomi <- agregar_nominaciones(
+  data = alertas_nomi,
+  prefix = "social_study_1",
+  var_int = "social_study_1_int",
+  add_vec = TRUE
+  
+)
+
+alertas_nomi <- agregar_nominaciones(
+  data = alertas_nomi,
+  prefix = "social_game_1",
+  var_int = "social_game_1_int",
+  add_vec = TRUE
+  
+)
+
+alertas_nomi <- agregar_nominaciones(
+  data = alertas_nomi,
+  prefix = "social_academic_1",
+  var_int = "social_academic_1_int",
+  add_vec = TRUE
+  
+)
+
+alertas_nomi <- agregar_nominaciones(
+  data = alertas_nomi,
+  prefix = "social_academic2_1",
+  var_int = "social_academic2_1_int",
+  add_vec = TRUE
+  
+)
+
+alertas_nomi <- agregar_nominaciones(
+  data = alertas_nomi,
+  prefix = "social_personal_1",
+  var_int = "social_personal_1_int",
+  add_vec = TRUE
+  
+)
+
+alertas_nomi <- agregar_nominaciones(
+  data = alertas_nomi,
+  prefix = "social_personal2_1",
+  var_int = "social_personal2_1_int",
+  add_vec = TRUE
+  
+)
 
 
+alertas_nomi <- agregar_nominaciones(
+  data = alertas_nomi,
+  prefix = "social_friend_wish_1",
+  var_int = "social_friend_wish_1_int",
+  add_vec = TRUE
+  
+)
+
+alertas_nomi <- agregar_nominaciones(
+  data = alertas_nomi,
+  prefix = "social_work_1",
+  max_nominaciones = 3,
+  add_vec = TRUE
+  
+)
 
 
+alertas_nomi <- agregar_nominaciones(
+  data = alertas_nomi,
+  prefix = "social_work2_1",
+  max_nominaciones = 3,
+  add_vec = TRUE
+  
+)
+
+alertas_nomi <- agregar_nominaciones(
+  data = alertas_nomi,
+  prefix = "social_work3_1",
+  max_nominaciones = 3,
+  add_vec = TRUE
+  
+)
+
+alertas_nomi <- agregar_nominaciones(
+  data = alertas_nomi,
+  prefix = "social_leadership_1",
+  max_nominaciones = 5,
+  add_vec = TRUE
+  
+)
+
+alertas_nomi <- agregar_nominaciones(
+  data = alertas_nomi,
+  prefix = "social_academic_skills_1",
+  max_nominaciones = 5,
+  add_vec = TRUE
+  
+)
+
+alertas_nomi <- agregar_nominaciones(
+  data = alertas_nomi,
+  prefix = "social_popularity_1",
+  max_nominaciones = 5,
+  add_vec = TRUE
+  
+)
+
+alertas_nomi <- agregar_nominaciones(
+  data = alertas_nomi,
+  prefix = "social_shyness_1",
+  max_nominaciones = 5,
+  add_vec = TRUE
+  
+)
+
+# Segundo orden ----------------------------------------------------------------
+
+alertas_nomi <- agregar_nominaciones(
+  data = alertas_nomi,
+  prefix = "social_friend_wish_12",
+  var_int = "social_friend_wish_2_int",
+  add_vec = TRUE
+  
+)
+
+alertas_nomi <- agregar_nominaciones(
+  data = alertas_nomi,
+  prefix = "social_work_2",
+  max_nominaciones = 3,
+  add_vec = TRUE
+  
+)
 
 
+alertas_nomi <- agregar_nominaciones(
+  data = alertas_nomi,
+  prefix = "social_work2_2",
+  max_nominaciones = 3,
+  add_vec = TRUE
+  
+)
+
+alertas_nomi <- agregar_nominaciones(
+  data = alertas_nomi,
+  prefix = "social_work3_2",
+  max_nominaciones = 3,
+  add_vec = TRUE
+  
+)
+
+alertas_nomi <- agregar_nominaciones(
+  data = alertas_nomi,
+  prefix = "social_leadership_2",
+  max_nominaciones = 5,
+  add_vec = TRUE
+  
+)
+
+alertas_nomi <- agregar_nominaciones(
+  data = alertas_nomi,
+  prefix = "social_academic_skills_2",
+  max_nominaciones = 5,
+  add_vec = TRUE
+  
+)
+
+alertas_nomi <- agregar_nominaciones(
+  data = alertas_nomi,
+  prefix = "social_popularity_2",
+  max_nominaciones = 5,
+  add_vec = TRUE
+  
+)
+
+alertas_nomi <- agregar_nominaciones(
+  data = alertas_nomi,
+  prefix = "social_shyness_2",
+  max_nominaciones = 5,
+  add_vec = TRUE
+  
+)
+
+alertas_nomi <- agregar_nominaciones(
+  data = alertas_nomi,
+  prefix = "social_house_2",
+  var_int = "social_house_2_int",
+  add_vec = TRUE
+  
+)
+
+alertas_nomi <- agregar_nominaciones(
+  data = alertas_nomi,
+  prefix = "social_study_2",
+  var_int = "social_study_2_int",
+  add_vec = TRUE
+  
+)
+
+alertas_nomi <- agregar_nominaciones(
+  data = alertas_nomi,
+  prefix = "social_game_2",
+  var_int = "social_game_2_int",
+  add_vec = TRUE
+  
+)
+
+alertas_nomi <- agregar_nominaciones(
+  data = alertas_nomi,
+  prefix = "social_academic_2",
+  var_int = "social_academic_2_int",
+  add_vec = TRUE
+  
+)
+
+alertas_nomi <- agregar_nominaciones(
+  data = alertas_nomi,
+  prefix = "social_academic2_2",
+  var_int = "social_academic2_2_int",
+  add_vec = TRUE
+  
+)
+
+alertas_nomi <- agregar_nominaciones(
+  data = alertas_nomi,
+  prefix = "social_personal_2",
+  var_int = "social_personal_2_int",
+  add_vec = TRUE
+  
+)
+
+alertas_nomi <- agregar_nominaciones(
+  data = alertas_nomi,
+  prefix = "social_personal2_2",
+  var_int = "social_personal2_2_int",
+  add_vec = TRUE
+  
+)
+
+
+# Consolidar alertas
 
 
 
