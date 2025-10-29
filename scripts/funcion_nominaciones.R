@@ -253,7 +253,7 @@ alertas_nomi <- agregar_nominaciones(
 
 alertas_nomi <- agregar_nominaciones(
   data = alertas_nomi,
-  prefix = "social_friend_wish_12",
+  prefix = "social_friend_wish_2",
   var_int = "social_friend_wish_2_int",
   add_vec = TRUE
   
@@ -376,4 +376,94 @@ alertas_nomi <- agregar_nominaciones(
 # Consolidar alertas
 
 
+# Crea columna si falta (con el tipo correcto)
+ensure_col <- function(df, col, type = c("int","dbl","chr","lgl","list")) {
+  type <- match.arg(type)
+  if (!col %in% names(df)) {
+    df[[col]] <- switch(type,
+                        int  = rep(NA_integer_, nrow(df)),
+                        dbl  = rep(NA_real_,    nrow(df)),
+                        chr  = rep(NA_character_, nrow(df)),
+                        lgl  = rep(NA,          nrow(df)),
+                        list = replicate(nrow(df), NA, simplify = FALSE)
+    )
+  }
+  df
+}
+
+# Unifica y elimina fuentes para un prefijo base entre _1_ y _2_
+unificar_y_purgar_prefijo <- function(df, base_prefijo, chooser = "network_random", umbral = 0.5) {
+  metrics <- c("unique","66","99","effective","flag_duplicates","flag_gaps","diff")
+  
+  # 1) Unificar métricas numéricas
+  for (m in metrics) {
+    c1  <- paste0(base_prefijo, "_1_", m)
+    c2  <- paste0(base_prefijo, "_2_", m)
+    out <- paste0(base_prefijo, "_",   m)
+    
+    df <- ensure_col(df, c1, "int")
+    df <- ensure_col(df, c2, "int")
+    
+    # resultado unificado (si chooser es NA → NA)
+    df[[out]] <- ifelse(
+      is.na(df[[chooser]]), NA_integer_,
+      ifelse(df[[chooser]] <= umbral, df[[c1]], df[[c2]])
+    )
+    
+    # eliminar columnas fuente si existen
+    df <- df[ , setdiff(names(df), c(c1, c2)), drop = FALSE]
+  }
+  
+  # 2) Unificar list-column *_vec (si existen) y borrar fuentes
+  c1_vec  <- paste0(base_prefijo, "_1_vec")
+  c2_vec  <- paste0(base_prefijo, "_2_vec")
+  out_vec <- paste0(base_prefijo, "_vec")
+  
+  if ((c1_vec %in% names(df)) || (c2_vec %in% names(df))) {
+    df <- ensure_col(df, c1_vec,  "list")
+    df <- ensure_col(df, c2_vec,  "list")
+    df <- ensure_col(df, out_vec, "list")
+    
+    nr <- nrow(df)
+    for (i in seq_len(nr)) {
+      rnd <- df[[chooser]][i]
+      if (is.na(rnd)) {
+        df[[out_vec]][[i]] <- NA
+      } else if (rnd <= umbral) {
+        df[[out_vec]][[i]] <- df[[c1_vec]][[i]]
+      } else {
+        df[[out_vec]][[i]] <- df[[c2_vec]][[i]]
+      }
+    }
+    
+    # borrar fuentes
+    df <- df[ , setdiff(names(df), c(c1_vec, c2_vec)), drop = FALSE]
+  }
+  
+  df
+}
+
+# --------- APLICAR A TODOS LOS BLOQUES ---------
+bases <- c(
+  "social_house",
+  "social_study",
+  "social_game",
+  "social_academic",
+  "social_academic2",
+  "social_personal",
+  "social_personal2",
+  "social_friend_wish",
+  "social_work",
+  "social_work2",
+  "social_work3",
+  "social_leadership",
+  "social_academic_skills",
+  "social_popularity",
+  "social_shyness"
+)
+
+# Ejecuta: crea una sola variable por métrica y purga *_1_* y *_2_* de cada base
+for (b in bases) {
+  alertas_nomi <- unificar_y_purgar_prefijo(alertas_nomi, base_prefijo = b, chooser = "network_random", umbral = 0.5)
+}
 

@@ -255,3 +255,93 @@ data <- data %>%
 
 
 
+# Ajustes nominaciones
+
+
+adjust_nomination_ints <- function(data,
+                                   bases_randomizadas,
+                                   bases_fijas = c("social_friends", "social_recess"),
+                                   assent_col = "assent",
+                                   rand_col   = "network_random",
+                                   umbral     = 0.5) {
+  stopifnot(is.data.frame(data))
+  stopifnot(all(c(assent_col, rand_col) %in% names(data)))
+  
+  # --- Helper: crea columna si falta ---
+  ensure_col <- function(df, col) {
+    if (!col %in% names(df)) df[[col]] <- NA
+    df
+  }
+  
+  # --- Helper: reemplaza NA o "" por 0 sólo en las filas indicadas ---
+  set_zero_on_idx_if_blank <- function(x, idx) {
+    out <- x
+    blank <- is.na(x) | str_trim(as.character(x)) == ""
+    if (is.character(out)) {
+      out[idx & blank] <- "0"
+    } else {
+      out[idx & blank] <- 0
+      if (is.integer(x)) out <- as.integer(out)
+    }
+    out
+  }
+  
+  # Índice general de personas con assent == 1
+  assent_ok <- (!is.na(data[[assent_col]])) & (data[[assent_col]] == 1)
+  rnd <- data[[rand_col]]
+  
+  # ========== 1️⃣ Bases aleatorizadas ==========
+  for (b in bases_randomizadas) {
+    c1 <- paste0(b, "_1_int")
+    c2 <- paste0(b, "_2_int")
+    
+    data <- ensure_col(data, c1)
+    data <- ensure_col(data, c2)
+    
+    idx1 <- assent_ok & !is.na(rnd) & rnd <= umbral
+    idx2 <- assent_ok & !is.na(rnd) & rnd >  umbral
+    
+    data[[c1]] <- set_zero_on_idx_if_blank(data[[c1]], idx1)
+    data[[c2]] <- set_zero_on_idx_if_blank(data[[c2]], idx2)
+  }
+  
+  # ========== 2️⃣ Bases fijas (sin randomización, pero con assent) ==========
+  for (b in bases_fijas) {
+    cint <- paste0(b, "_int")
+    if (cint %in% names(data)) {
+      data <- ensure_col(data, cint)
+      idx <- assent_ok  # sólo si aceptó
+      data[[cint]] <- set_zero_on_idx_if_blank(data[[cint]], idx)
+    }
+  }
+  
+  return(data)
+}
+
+# ---------- 💡 Ejemplo de uso ----------
+bases_randomizadas <- c(
+  "social_house",
+  "social_study",
+  "social_game",
+  "social_academic",
+  "social_academic2",
+  "social_personal",
+  "social_personal2",
+  "social_friend_wish",
+  "social_work",
+  "social_work2",
+  "social_work3",
+  "social_leadership",
+  "social_academic_skills",
+  "social_popularity",
+  "social_shyness"
+)
+
+data <- adjust_nomination_ints(
+  data   = data,
+  bases_randomizadas = bases_randomizadas,
+  bases_fijas        = c("social_friends", "social_recess"),
+  assent_col = "assent",
+  rand_col   = "network_random",
+  umbral     = 0.5
+)
