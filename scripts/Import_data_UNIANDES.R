@@ -229,9 +229,9 @@ data <- data %>%
 
 
 data <- data %>%
-  mutate(endtime = mdy_hms(endtime),
-         starttime = mdy_hms(starttime))%>%
-  filter(endtime >= mdy_hms("Oct 26, 2025 12:00:00 AM"))
+  mutate(SubmissionDate = mdy_hms(SubmissionDate),
+         starttime = mdy_hms(SubmissionDate))%>%
+  filter(SubmissionDate >= mdy_hms("Oct 26, 2025 12:00:00 AM"))
 
 # Ajustar id
 
