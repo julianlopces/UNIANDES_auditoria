@@ -467,3 +467,38 @@ for (b in bases) {
   alertas_nomi <- unificar_y_purgar_prefijo(alertas_nomi, base_prefijo = b, chooser = "network_random", umbral = 0.5)
 }
 
+
+
+# Consolidar alertas
+
+# Totales de flags de nominaciones (duplicados y saltos)
+calc_flag_totals <- function(df) {
+  dup_cols <- grep("_flag_duplicates$", names(df), value = TRUE)
+  gap_cols <- grep("_flag_gaps$",       names(df), value = TRUE)
+  
+  # Si no existen algunas columnas, evitamos errores
+  if (length(dup_cols) == 0L) dup_cols <- character(0)
+  if (length(gap_cols) == 0L) gap_cols <- character(0)
+  
+  # Construir matrices 0/1 para rowSums (NA -> 0 solo para el cálculo)
+  dup_mat <- if (length(dup_cols)) {
+    as.matrix(replace(df[dup_cols], is.na(df[dup_cols]), 0L))
+  } else matrix(0L, nrow(df), 0)
+  
+  gap_mat <- if (length(gap_cols)) {
+    as.matrix(replace(df[gap_cols], is.na(df[gap_cols]), 0L))
+  } else matrix(0L, nrow(df), 0)
+  
+  df$total_flags_duplicates <- rowSums(dup_mat)
+  df$total_flags_gaps       <- rowSums(gap_mat)
+  df$total_flags_any        <- df$total_flags_duplicates + df$total_flags_gaps
+  
+  
+  df
+}
+
+# Uso:
+alertas_nomi <- calc_flag_totals(alertas_nomi)
+
+
+
