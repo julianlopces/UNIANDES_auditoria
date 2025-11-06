@@ -113,7 +113,13 @@ alertas <- alertas %>%
   )
 
 alertas <- alertas %>%
-  mutate(duplicado = if_else(duplicated(student_id_final,codigo_compuesto) & assent == 1,1,0))
+  group_by(student_id_final, codigo_compuesto) %>%
+  mutate(
+    idx_assent1 = ifelse(assent == 1, cumsum(assent == 1), NA_integer_),
+    duplicado = as.integer(assent == 1 & idx_assent1 >= 2)
+  ) %>%
+  select(-idx_assent1) %>%
+  ungroup()
 
 ## Exceso de no responde
 
