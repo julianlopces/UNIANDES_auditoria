@@ -3,7 +3,7 @@ name: UNIANDES pipeline
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 */4 * * *"  # cada 4 horas (UTC)
+    - cron: "0 */2 * * *"  # cada 2 horas (UTC)
 
 concurrency:
   group: uniandes-pipeline

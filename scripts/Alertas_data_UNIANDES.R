@@ -346,7 +346,8 @@ seguimiento_colegios <- alertas_sin_duplicados %>%
   group_by(colegio_final,colegio_pull_id) %>%
   summarise(
     total_encuestas = n(),
-    Rechazos = sum(flag_rejected, na.rm = TRUE),
+    Rechazos = sum(rechazo == "3", na.rm = TRUE),
+    Consentimiento = sum(rechazo == "4", na.rm = TRUE),
     Ausentes = sum(flag_ausente,na.rm=TRUE),
     Retirado = sum(flag_retirado, na.rm=TRUE),
     Limitacion = sum(flag_limitacion, na.rm = TRUE),
