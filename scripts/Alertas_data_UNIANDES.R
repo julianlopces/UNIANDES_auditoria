@@ -286,7 +286,7 @@ alertas <- alertas %>%
   mutate(total_encuestas = n(),
          Exitos = if_else(flag_duration_mas == 0 & flag_duration_menos == 0 & flag_duplicated == 0 &  
                             flag_missing == 0 &  flag_saltos == 0 & flag_extreme_values == 0 & flag_ns == 0 &
-                            flag_rejected == 0,1,0),
+                            flag_rejected == 0 & as.numeric(assent) == 1,1,0),
          Alertas = if_else(flag_duration_mas == 1 | flag_duration_menos == 1 | flag_duplicated == 1 |   
                              flag_missing == 1 | flag_saltos == 1 | flag_extreme_values == 1 | flag_ns == 1,1,0),
          Rechazos = if_else(flag_rejected == 1,1,0),
@@ -330,6 +330,7 @@ attr(alertas$gender_str, "label") <- "Género"
 # Separar los que tienen y no tienen ID
 con_id <- alertas %>%
   filter(!is.na(student_id)) %>%
+  mutate(endtime = mdy_hms(endtime))%>%
   arrange(endtime)%>%
   group_by(student_id)%>%
   mutate(intento = row_number())%>%
@@ -337,7 +338,8 @@ con_id <- alertas %>%
 
 
 sin_id <- alertas %>%
-  filter(is.na(student_id))
+  filter(is.na(student_id))%>%
+  mutate(endtime = mdy_hms(endtime))
 
 # Unirlos nuevamente
 alertas_sin_duplicados <- bind_rows(con_id, sin_id)
