@@ -30,4 +30,17 @@ export_sheet(seguimiento_colegios_2, sheet, "seguimiento_colegios", label = "col
 export_sheet(alertas_nomi, sheet, "nominaciones", label = "nominaciones",         pause = 5)
 
 
+sheet2 <- tryCatch({
+  gs4_get("1EmeaKe6QrRRTHQhJhXsu0ii84KsGRg0heCV7ksLe2Ko")
+}, error = function(e) {
+  stop("Error al conectar con el Google Sheet de alertas: ", e)
+})
+
+export_sheet(seguimiento_colegios_detalle_final,             sheet2, "seguimiento_estudiantes",  label = "colegios",                 pause = 5)
+export_sheet(lista_estudiantes_pendiente,             sheet2, "estudiantes_faltantes",  label = "estudiantes",                 pause = 5)
+export_sheet(estudiantes,             sheet2, "estudiantes_realizados",  label = "estudiantes",                 pause = 5)
+
+
+
+
 message("✅ Todos los datos fueron exportados exitosamente.")

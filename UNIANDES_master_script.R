@@ -85,6 +85,7 @@ load_script <- function(script_name) {
 load_script("Import_data_UNIANDES.R")
 load_script("Alertas_data_UNIANDES.R")
 load_script("funcion_nominaciones.R")
+load_script("Detalle_colegios.R")
 load_script("Export_data_UNIANDES.R")
 
 message("Pipeline completado exitosamente.")
