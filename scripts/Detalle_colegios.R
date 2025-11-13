@@ -65,7 +65,7 @@ seguimiento_colegios_detalle_final <- seguimiento_colegios_detalle_final %>%
                                                "437731")) & !COD_MODULAR %in% c("209270"))%>%
   filter(!is.na(total_encuestas))%>%
   arrange(pendientes)%>%
-  filter(!is.na(pendientes) | Ausentes >= 3)
+  filter(!is.na(pendientes) | Ausentes >= 3 | Logistica > 0)
 
 
 lista_estudiantes_pendiente <- lista_estudiantes_pendiente %>%
