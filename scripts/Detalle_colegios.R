@@ -10,7 +10,8 @@ seguimiento_colegios <- alertas_sin_duplicados %>%
   group_by(school_final) %>%
   summarise(
     total_encuestas = n(),
-    Rechazos      = sum(flag_rejected  == 1, na.rm = TRUE),
+    Rechazos = sum(rechazo == "3", na.rm = TRUE),
+    Consentimiento = sum(rechazo == "4", na.rm = TRUE),
     Ausentes      = sum(flag_ausente   == 1, na.rm = TRUE),
     Retirado      = sum(flag_retirado  == 1, na.rm = TRUE),
     Limitacion    = sum(flag_limitacion== 1, na.rm = TRUE),
@@ -65,7 +66,7 @@ seguimiento_colegios_detalle_final <- seguimiento_colegios_detalle_final %>%
                                                "437731")) & !COD_MODULAR %in% c("209270"))%>%
   filter(!is.na(total_encuestas))%>%
   arrange(pendientes)%>%
-  filter(!is.na(pendientes) | Ausentes >= 3 | Logistica > 0)
+  filter(!is.na(pendientes) | Ausentes >= 3 | Logistica > 0 | Consentimiento > 0)
 
 
 lista_estudiantes_pendiente <- lista_estudiantes_pendiente %>%
