@@ -312,8 +312,8 @@ colegios_control <- c(
 alertas <- alertas %>%
   mutate(
     tratamiento = case_when(
-      school_final %in% colegios_tratamiento  ~ "Tratamiento",
-      school_final %in% colegios_control  ~ "Control",
+      school_final %in% meta_colegios[meta_colegios$TRATAMIENTO == 1,]$COD_MODULAR  ~ "Tratamiento",
+      school_final %in% meta_colegios[meta_colegios$TRATAMIENTO == 0,]$COD_MODULAR  ~ "Control",
       TRUE ~ NA_character_))
 
 ### Labels para demográficas ___________________________________________________
