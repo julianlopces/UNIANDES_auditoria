@@ -96,6 +96,7 @@ status_colegio <-  read_sheet("1EmeaKe6QrRRTHQhJhXsu0ii84KsGRg0heCV7ksLe2Ko",
                                    sheet = "monitor_campo")%>%
   filter(ESTATUS == "FINALIZADA" & !is.na(`CÓDIGO MODULAR`))%>%
   rename(COD_MODULAR = `CÓDIGO MODULAR`)%>%
+  mutate(COD_MODULAR = as.character(COD_MODULAR))%>%
   left_join(seguimiento_colegios_detalle_final%>%select(-c(COLEGIO,ADICIONALES)), by = "COD_MODULAR")
 
 status_colegio <- status_colegio %>%
