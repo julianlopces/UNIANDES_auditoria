@@ -100,7 +100,7 @@ status_colegio <-  read_sheet("1EmeaKe6QrRRTHQhJhXsu0ii84KsGRg0heCV7ksLe2Ko",
     substr(COD_MODULAR,1,1) == "0" ~ substr(COD_MODULAR,2,length(COD_MODULAR)),
     TRUE ~ COD_MODULAR
   ))%>%
-  left_join(seguimiento_colegios_detalle_final%>%select(-c(COLEGIO,TRATAMIENTO,ADICIONALES)), by = "COD_MODULAR")
+  left_join(seguimiento_colegios_detalle_final%>%select(-c(COLEGIO,ADICIONALES)), by = "COD_MODULAR")
 
 status_colegio <- status_colegio %>%
   mutate(falta_docentes = if_else(COD_MODULAR %in% docentes_pendientes$CODIGO_MODULAR,"Sí","NO"),
