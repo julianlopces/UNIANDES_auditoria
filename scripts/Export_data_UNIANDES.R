@@ -39,6 +39,8 @@ sheet2 <- tryCatch({
 export_sheet(seguimiento_colegios_detalle_final,             sheet2, "seguimiento_estudiantes",  label = "colegios",                 pause = 5)
 export_sheet(lista_estudiantes_pendiente,             sheet2, "estudiantes_faltantes",  label = "estudiantes",                 pause = 5)
 export_sheet(estudiantes,             sheet2, "estudiantes_realizados",  label = "estudiantes",                 pause = 5)
+export_sheet(status_colegio,             sheet2, "Estatus colegio",  label = "estudiantes",                 pause = 5)
+
 
 
 

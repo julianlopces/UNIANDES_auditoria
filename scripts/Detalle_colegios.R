@@ -65,8 +65,7 @@ seguimiento_colegios_detalle_final <- seguimiento_colegios_detalle_final %>%
                                                "762906",
                                                "437731")) & !COD_MODULAR %in% c("209270"))%>%
   filter(!is.na(total_encuestas))%>%
-  arrange(pendientes)%>%
-  filter(!is.na(pendientes) | Ausentes >= 3 | Logistica > 0 | Consentimiento > 0)
+  arrange(pendientes)
 
 
 lista_estudiantes_pendiente <- lista_estudiantes_pendiente %>%
@@ -78,6 +77,44 @@ lista_estudiantes_pendiente <- lista_estudiantes_pendiente %>%
 estudiantes <- alertas_sin_duplicados %>%
   select(SubmissionDate,student_id,student_id_yesno,name_final,school_final,assent,rechazo_str)%>%
   left_join(meta_colegios %>% select(COD_MODULAR,COLEGIO), by =c("school_final"="COD_MODULAR"))
+
+
+
+# Importar docentes pendientes
+
+
+docentes_pendientes <-  read_sheet("1EmeaKe6QrRRTHQhJhXsu0ii84KsGRg0heCV7ksLe2Ko",
+                                             sheet = "seguimiento_docentes")%>%
+  filter(status == "SIN ENCUESTA DOCENTE")
+
+
+
+# Importar status colegio
+
+
+status_colegio <-  read_sheet("1EmeaKe6QrRRTHQhJhXsu0ii84KsGRg0heCV7ksLe2Ko",
+                                   sheet = "monitor_campo")%>%
+  filter(ESTATUS == "FINALIZADA" & !is.na(`CÓDIGO MODULAR`))%>%
+  rename(COD_MODULAR = `CÓDIGO MODULAR`)%>%
+  mutate(COD_MODULAR = case_when(
+    substr(COD_MODULAR,1,1) == "0" ~ substr(COD_MODULAR,2,length(COD_MODULAR)),
+    TRUE ~ COD_MODULAR
+  ))%>%
+  left_join(seguimiento_colegios_detalle_final%>%select(-c(COLEGIO,TRATAMIENTO,ADICIONALES)), by = "COD_MODULAR")
+
+status_colegio <- status_colegio %>%
+  mutate(falta_docentes = if_else(COD_MODULAR %in% docentes_pendientes$CODIGO_MODULAR,"Sí","NO"),
+        avance_exitos = ((exitos + alertas)/ESTUDIANTES)*100,
+         avance_total = (total_encuestas/ESTUDIANTES)*100,
+        menos_50_estudiantes = if_else(avance_exitos < 50,"Sí","NO"))%>%
+  arrange(avance_exitos)
+
+
+
+
+
+
+
 
 
 
